@@ -3,6 +3,7 @@ defmodule GuitarSnifferCore.PacketTransport do
     require Logger
 
     defmodule EncoderContainer do
+        alias GuitarSnifferCore.PacketTransport.EncodedPacket
         defstruct([
             :buttons,
             :strum,
@@ -39,7 +40,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 "accel: #{inspect encoderContainer.accel}\n",
                 "whammy: #{inspect encoderContainer.whammy}\n"
             >>)
-            GuitarSnifferCore.PacketTransport.EncodedPacket.create(top_frets, low_frets, strum, buttons, slider, encoderContainer.accel, encoderContainer.whammy)
+            EncodedPacket.create(top_frets, low_frets, strum, buttons, slider, encoderContainer.accel, encoderContainer.whammy)
         end
 
         defp parse_frets_strum(fretCounter, strumCounter) do
@@ -162,7 +163,6 @@ defmodule GuitarSnifferCore.PacketTransport do
     defmodule EncodedPacket do
         defstruct([
             #            r, g, y, b, o
-            #
             top_frets: <<0, 0, 0, 0, 0>>,
             #            r, g, y, b, o
             low_frets: <<0, 0, 0, 0, 0>>,
@@ -190,6 +190,16 @@ defmodule GuitarSnifferCore.PacketTransport do
             }
         end
 
+        @doc """
+            Converts the EncodedPacket struct to a useable 16bit binary
+
+            ## Example
+
+            Return: <<1, 1, 0, 0, 0, 0, 0, 0, 0, 0,  2, 0, 0,  0, 0, 5>>
+                      |___________|  |___________|  _|  |__|   |  |  |_
+                      Top Frets      Low Frets   __| Buttons _|  |_ Whammy
+                                              Strum      Slider  Accel
+        """
         def toBinary(encodedPacket = %EncodedPacket{}) do
             return = <<
                 encodedPacket.top_frets :: binary,
