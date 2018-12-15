@@ -1,7 +1,9 @@
 defmodule GuitarSnifferCore.PacketTransport do
     use Bitwise, only_operators: true
+    require Logger
 
     defmodule EncoderContainer do
+        alias GuitarSnifferCore.PacketTransport.EncodedPacket
         defstruct([
             :buttons,
             :strum,
@@ -29,24 +31,16 @@ defmodule GuitarSnifferCore.PacketTransport do
             low_frets = parse_frets(encoderContainer.low_frets)
             buttons = parse_buttons(encoderContainer.buttons)
             slider = parse_slider(encoderContainer.slider)
-            IO.puts(<<
+            Logger.debug(<<
                 "top: #{inspect top_frets}\n",
-                "strum: #{inspect strum}\n",
                 "low: #{inspect low_frets}\n",
+                "strum: #{inspect strum}\n",
                 "buttons: #{inspect buttons}\n",
-                "slider: #{inspect slider}\n"
+                "slider: #{inspect slider}\n",
+                "accel: #{inspect encoderContainer.accel}\n",
+                "whammy: #{inspect encoderContainer.whammy}\n"
             >>)
-            return = <<
-                top_frets :: binary,
-                low_frets :: binary,
-                strum :: binary,
-                buttons :: binary,
-                encoderContainer.accel :: binary,
-                encoderContainer.whammy :: binary,
-                slider :: binary
-            >>
-            IO.puts("size of encoded Packet: #{inspect byte_size(return)}\nencoded packet: #{inspect return}")
-            return
+            EncodedPacket.create(top_frets, low_frets, strum, buttons, slider, encoderContainer.accel, encoderContainer.whammy)
         end
 
         defp parse_frets_strum(fretCounter, strumCounter) do
@@ -63,7 +57,7 @@ defmodule GuitarSnifferCore.PacketTransport do
         end
 
         defp parse_frets(fretCounter0) do
-            IO.puts("\n===\nPARSING FRETS\n===")
+            Logger.debug("\n===\nPARSING FRETS\n===")
             {fretCounter1, green} = check_value(fretCounter0, :fret_green)
             {fretCounter2, red} = check_value(fretCounter1, :fret_red)
             {fretCounter3, yellow} = check_value(fretCounter2, :fret_yellow)
@@ -76,25 +70,25 @@ defmodule GuitarSnifferCore.PacketTransport do
                 blue :: binary,
                 orange :: binary
             >>
-            IO.puts("size of frets: #{inspect byte_size(return)}")
+            Logger.debug("size of frets: #{inspect byte_size(return)}")
             return
         end
 
         defp parse_buttons(buttonCounter0) do
-            IO.puts("\n===\nPARSING BUTTONS\n===")
+            Logger.debug("\n===\nPARSING BUTTONS\n===")
             {buttonCounter1, start} = check_value(buttonCounter0, :button_start)
             {_buttonCounter2, menu} = check_value(buttonCounter1, :button_menu)
             return = <<
                 start :: binary,
                 menu :: binary
             >>
-            IO.puts("size of buttons: #{inspect byte_size(return)}")
+            Logger.debug("size of buttons: #{inspect byte_size(return)}")
             return
         end
 
         # returns <<orange, strum>>
         defp parse_strum(strumCounter0) do
-            IO.puts("\n===\nPARSING STRUM\n===")
+            Logger.debug("\n===\nPARSING STRUM\n===")
             return = cond do
                 xor(strumCounter0, get_key(:strum_up)) ->
                     <<0, 2>>;
@@ -111,12 +105,12 @@ defmodule GuitarSnifferCore.PacketTransport do
                             <<orange :: binary, 0>>;
                     end
             end
-            IO.puts("size of strum: #{inspect byte_size(return)}")
+            Logger.debug("size of strum: #{inspect byte_size(return)}")
             return
         end
 
         defp parse_slider(sliderCounter0) do
-            IO.puts("\n===\nPARSING SLIDER\n===")
+            Logger.debug("\n===\nPARSING SLIDER\n===")
             return = cond do
                 check_slider_value(sliderCounter0, :slider_pos1) == 1 ->
                     <<1>>;
@@ -129,7 +123,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 check_slider_value(sliderCounter0, :slider_pos5) == 1 ->
                     <<5>>
             end
-            IO.puts("size of slider: #{inspect byte_size(return)}")
+            Logger.debug("size of slider: #{inspect byte_size(return)}")
             return
         end
 
@@ -147,7 +141,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 _ ->
                     {counter, <<0>>}
             end
-            IO.puts("> Counter: #{inspect counter}\n> Matching Against: #{inspect get_key(key)}\n> Return: #{inspect retCode}\n")
+            Logger.debug("\n> Counter: #{inspect counter}\n> Matching Against: #{inspect get_key(key)}\n> Return: #{inspect retCode}\n")
             result
         end
 
@@ -172,14 +166,52 @@ defmodule GuitarSnifferCore.PacketTransport do
             top_frets: <<0, 0, 0, 0, 0>>,
             #            r, g, y, b, o
             low_frets: <<0, 0, 0, 0, 0>>,
+            #            s
+            strum:     <<0>>,
             #            m, s
             buttons:   <<0, 0>>,
-            #            o, s
-            strum:     <<0, 0>>
+            #            s
+            slider:    <<1>>,
+            #            a
+            accel:     <<0>>,
+            #
+            whammy:    <<0>>
         ])
 
-        def toBinary(encodedPacket) when encodedPacket == %EncodedPacket{} do
+        def create(top, low, strum, buts, slider, accel, whammy) do
+            %EncodedPacket{
+                top_frets: top,
+                low_frets: low,
+                strum: strum,
+                buttons: buts,
+                slider: slider,
+                accel: accel,
+                whammy: whammy
+            }
+        end
 
+        @doc """
+            Converts the EncodedPacket struct to a useable 16bit binary
+
+            ## Example
+
+            Return: <<1, 1, 0, 0, 0, 0, 0, 0, 0, 0,  2, 0, 0,  0, 0, 5>>
+                      |___________|  |___________|  _|  |__|   |  |  |_
+                      Top Frets      Low Frets   __| Buttons _|  |_ Whammy
+                                              Strum      Slider  Accel
+        """
+        def toBinary(encodedPacket = %EncodedPacket{}) do
+            return = <<
+                encodedPacket.top_frets :: binary,
+                encodedPacket.low_frets :: binary,
+                encodedPacket.strum :: binary,
+                encodedPacket.buttons :: binary,
+                encodedPacket.accel :: binary,
+                encodedPacket.whammy :: binary,
+                encodedPacket.slider :: binary
+            >>
+            Logger.debug("size of encoded Packet: #{inspect byte_size(return)}\nencoded packet: #{inspect return}")
+            return
         end
     end
 
