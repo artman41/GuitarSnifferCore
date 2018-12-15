@@ -1,5 +1,6 @@
 defmodule GuitarSnifferCore.Packet do
     require Logger
+    alias GuitarSnifferCore.PacketTransport.{EncoderContainer, EncodedPacket}
     @moduledoc """
     ### Method
     * skip first 30 bytes
@@ -96,20 +97,10 @@ defmodule GuitarSnifferCore.Packet do
             "low_fret: #{inspect low_fret}\n"
         >>)
 
-        bytes = [
-            {"buttons", buttons},
-            {"strum", strum},
-            {"accel", accel},
-            {"whammy", whammy},
-            {"slider", slider},
-            {"top_fret", top_fret},
-            {"low_fret", low_fret}
-        ]
-
-        encoderContainer = GuitarSnifferCore.PacketTransport.EncoderContainer.create(buttons, strum, accel, whammy, slider, top_fret, low_fret)
-
+        encoderContainer = EncoderContainer.create(buttons, strum, accel, whammy, slider, top_fret, low_fret)
+        encodedPacket = EncoderContainer.toEncodedPacket(encoderContainer)
         # values = Enum.map(bytes, &parse_byte/1)
-        {:ok, GuitarSnifferCore.PacketTransport.EncoderContainer.toEncodedPacket(encoderContainer)}
+        {:ok, EncodedPacket.toBinary(encodedPacket)}
     end
 
     def test_packet(), do: <<0x88, 0x11, 0xA0, 0x00, 0x62, 0x45, 0xB4, 0xF0, 0x85, 0x2C, 0x7E, 0xED, 0x8F, 0xFF, 0x73, 0x00, 0x62, 0x45, 0xB4, 0xF0, 0x85, 0x2C, 0xB0, 0x01, 0x00, 0x00, 0x20, 0x00, 0x1C, 0x0A, 0x30, 0x00, 0x00, 0x00, 0x40, 0x03, 0x00, 0x00, 0x00, 0x00>>
