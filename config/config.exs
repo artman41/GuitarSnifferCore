@@ -22,7 +22,7 @@ use Mix.Config
 config(:logger, [
     {:console, [
         level: :info,
-        format: "$node - {$date $time} [$level]\n    metadata: $metadata\n$message\n"
+        format: "[$date $time $level]\n    metadata: $metadata\n$message\n"
     ]}
 ])
 
