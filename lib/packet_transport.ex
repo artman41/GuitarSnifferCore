@@ -1,7 +1,7 @@
 defmodule GuitarSnifferCore.PacketTransport do
     use Bitwise, only_operators: true
     require Logger
-
+    
     defmodule FenderStratocaster do
 
         defmodule EncoderContainer do
@@ -166,7 +166,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 <<intA ^^^ intB>>
             end
         end
-
+        
         defmodule EncodedPacket do
             defstruct([
                 #            r, g, y, b, o
