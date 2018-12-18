@@ -25,7 +25,9 @@ defmodule GuitarSnifferCore.PacketHandler do
     end
 
     def handle_body(data, req) do
-        case GuitarSnifferCore.Packet.decode(data) do
+        x = GuitarSnifferCore.Packet.decode(data)
+        Logger.debug("#{inspect x}")
+        case x do
             {:error, msg} ->
                 {msg, req}
             {:ok, msg} ->
