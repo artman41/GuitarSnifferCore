@@ -30,7 +30,7 @@ defmodule GuitarSnifferCore.Handlers.FenderStratocaster do
     """
 
     def do_decode(<<_head :: binary-size(12), buttons :: binary-size(2), strum :: binary-size(2), accel :: binary-size(2), whammy :: binary-size(2), slider :: binary-size(2), top_fret :: binary-size(2), low_fret :: binary-size(2), _tail :: binary>>) do
-        Logger.debug(<<
+        Logger.info(<<
             "buttons: #{inspect buttons}\n",
             "strum: #{inspect strum}\n",
             "accel: #{inspect accel}\n",
