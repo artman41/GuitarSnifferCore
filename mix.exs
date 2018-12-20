@@ -4,7 +4,7 @@ defmodule GuitarSnifferCore.MixProject do
   def project do
     [
       app: :guitar_sniffer_core,
-      version: "1.1",
+      version: "1.1.0",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps()
