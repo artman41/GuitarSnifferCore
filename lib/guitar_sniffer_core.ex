@@ -2,20 +2,22 @@ defmodule GuitarSnifferCore.App do
     require Logger
 
     def start(_type, _args) do
-        start_cowboy(8080)
+        get_port()
+        |> start_ranch()
     end
 
-    def start_cowboy(port) do
-        dispatch_config = :cowboy_router.compile([
-            {:_, [
-                {"/packet", GuitarSnifferCore.PacketHandler, []}
-            ]}
-        ])
+    defp get_port() do
+        Application.get_env(Application.get_application(__MODULE__), :listener, [port: 3000])
+        |> Keyword.fetch!(:port)
+    end
 
-        opts = [port: port]
-        env = %{dispatch: dispatch_config}
-
-        {:ok, _} = :cowboy.start_clear(:http, opts, %{env: env})
+    defp start_ranch(port) do
+        {:ok, _} = :ranch.start_listener(
+            :tcp_listener,
+            :ranch_tcp,
+            [{:port, port}],
+            GuitarSnifferCore.PacketHandler,
+            [])
     end
 
 end
