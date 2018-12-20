@@ -1,7 +1,7 @@
 defmodule GuitarSnifferCore.PacketTransport do
     use Bitwise, only_operators: true
     require Logger
-    
+
     defmodule FenderStratocaster do
 
         defmodule EncoderContainer do
@@ -166,7 +166,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 <<intA ^^^ intB>>
             end
         end
-        
+
         defmodule EncodedPacket do
             defstruct([
                 #            r, g, y, b, o
@@ -185,6 +185,7 @@ defmodule GuitarSnifferCore.PacketTransport do
                 whammy:    <<0>>
             ])
 
+            def create(), do: %EncodedPacket{}
             def create(top, low, strum, buts, slider, accel, whammy) do
                 %EncodedPacket{
                     top_frets: top,
@@ -202,10 +203,10 @@ defmodule GuitarSnifferCore.PacketTransport do
 
                 ## Example
 
-                Return: <<1, 1, 0, 0, 0, 0, 0, 0, 0, 0,  2, 0, 0,  0, 0, 5>>
-                        |_____________| |___________|  _|  |__|   |  |  |_
-                        Top Frets      Low Frets   __| Buttons _|  |_ Whammy
-                                                Strum      Slider  Accel
+                Return: <<1, 1, 0, 0, 0, 0, 0, 0, 0, 0,  2, 0, 0, 0, 0, 5>>
+                        |_____________| |___________|  _|  |__|  | _|  |_
+                        Top Frets      Low Frets   __| Buttons _| Whammy |_
+                                                Strum      Accel         Slider
             """
             def toBinary(encodedPacket = %EncodedPacket{}) do
                 return = <<
